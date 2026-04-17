@@ -18,10 +18,22 @@ class ForgeShellTests(unittest.TestCase):
             self.assertEqual(result.output, "")
             self.assertEqual(shell.cwd, os.path.abspath(tempdir))
 
-    def test_unknown_command(self):
+    def test_command_not_found(self):
         shell = ForgeShell(cwd="/")
         result = shell.execute("command_that_should_not_exist_123")
-        self.assertIn("command not found", result.output)
+        self.assertIn("not found", result.output)
+        self.assertIn("[exit", result.output)
+
+    def test_pipe_and_system_shell_features(self):
+        shell = ForgeShell(cwd="/")
+        result = shell.execute("printf 'a\\nb\\n' | wc -l")
+        self.assertEqual(result.output.strip(), "2")
+
+    def test_env_variable_expansion(self):
+        shell = ForgeShell(cwd="/")
+        os.environ["FORGESHELL_TEST_VAR"] = "forge"
+        result = shell.execute("printf '%s' $FORGESHELL_TEST_VAR")
+        self.assertEqual(result.output, "forge")
 
 
 if __name__ == "__main__":

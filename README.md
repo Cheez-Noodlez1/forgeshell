@@ -11,7 +11,11 @@ ForgeShell is a tiny, hackable interactive shell written in Python.
   - `cd <path>`
   - `history`
   - `exit` / `quit`
-- Falls back to external system commands when input is not built-in.
+- External commands run through your system shell for real shell behavior:
+  - pipes (`|`)
+  - redirects (`>`, `>>`, `<`)
+  - globs (`*`)
+  - environment variable expansion (`$HOME`)
 
 ## Run
 
@@ -24,9 +28,8 @@ python3 forgeshell.py
 ```text
 forgeshell:/workspace$ pwd
 /workspace
-forgeshell:/workspace$ echo hello
-hello
-forgeshell:/workspace$ history
-1: pwd
-2: echo hello
+forgeshell:/workspace$ printf 'a\nb\n' | wc -l
+2
+forgeshell:/workspace$ echo $HOME
+/root
 ```

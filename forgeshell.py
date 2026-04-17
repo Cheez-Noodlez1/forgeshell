@@ -19,6 +19,7 @@ class CommandResult:
 class ForgeShell:
     cwd: str = field(default_factory=os.getcwd)
     history: list[str] = field(default_factory=list)
+    shell_executable: str = field(default_factory=lambda: os.environ.get("SHELL", "/bin/sh"))
 
     def prompt(self) -> str:
         return f"forgeshell:{self.cwd}$ "
@@ -65,11 +66,18 @@ class ForgeShell:
             "  pwd             Show current directory\n"
             "  cd <path>       Change directory\n"
             "  history         Show command history\n"
-            "  exit | quit     Exit ForgeShell"
+            "  exit | quit     Exit ForgeShell\n"
+            "\n"
+            "External commands run in your system shell, so pipes, redirects, globs, "
+            "and environment-variable expansion work as expected."
         )
 
     def _cd(self, command: str) -> CommandResult:
-        parts = shlex.split(command)
+        try:
+            parts = shlex.split(command)
+        except ValueError as exc:
+            return CommandResult(f"parse error: {exc}")
+
         if len(parts) == 1:
             target = os.path.expanduser("~")
         else:
@@ -85,21 +93,15 @@ class ForgeShell:
         return CommandResult()
 
     def _run_external(self, command: str) -> CommandResult:
-        try:
-            parts = shlex.split(command)
-        except ValueError as exc:
-            return CommandResult(f"parse error: {exc}")
-
-        try:
-            proc = subprocess.run(
-                parts,
-                cwd=self.cwd,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        except FileNotFoundError:
-            return CommandResult(f"command not found: {parts[0]}")
+        proc = subprocess.run(
+            command,
+            cwd=self.cwd,
+            check=False,
+            capture_output=True,
+            text=True,
+            shell=True,
+            executable=self.shell_executable,
+        )
 
         output = (proc.stdout or "") + (proc.stderr or "")
         if proc.returncode != 0:
